@@ -4,11 +4,10 @@ import {
   CheckCircle2,
   Loader2,
   LockKeyhole,
-  ShieldCheck,
 } from "lucide-react";
 
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import { Button } from "@/components/ui/button";
 import { PasswordField } from "@/components/password-field";
 import {
@@ -18,11 +17,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+
 import { PasswordRecovery } from "@/features/auth/password-recovery";
-import { SuperAdminDashboard } from "@/features/dashboard/super-admin-dashboard";
+import { SuperAdminDashboard } from "@/features/pages/super-admin-dashboard";
 import { ApiError } from "@/lib/api";
 import {
   loginWithGoogle,
@@ -76,8 +73,19 @@ export function LoginPage({ googleEnabled }: LoginPageProps) {
     };
   }, [screen]);
 
+  function validateInputs() {
+    if (!email.trim() || !password) return "Please enter your email and password.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return "Please enter a valid email address.";
+    return "";
+  }
+
   async function handlePasswordLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const validationError = validateInputs();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
@@ -180,116 +188,105 @@ export function LoginPage({ googleEnabled }: LoginPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 lg:grid lg:grid-cols-[1.05fr_0.95fr]">
-      <section className="relative hidden overflow-hidden border-r border-white/10 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(59,130,246,0.32),transparent_35%),radial-gradient(circle_at_80%_80%,rgba(99,102,241,0.25),transparent_38%)]" />
-        <div className="relative flex items-center gap-3 text-2xl font-bold tracking-tight text-white">
-          <img
-            src="/zigmaa-logo.webp"
-            alt="Zigmaa Tech Logo"
-            className="size-11 rounded-xl object-cover shadow-lg shadow-red-600/30 border border-white/20"
-          />
-          Zigmaa Tech
-        </div>
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{
+        backgroundImage: `url('/login-bg.webp')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-slate-900/60" />
 
-
-        <div className="relative max-w-xl">
-          <p className="mb-5 text-sm font-semibold uppercase tracking-[0.3em] text-blue-300">
-            One workspace. Every team.
-          </p>
-          <h1 className="text-5xl font-semibold leading-tight tracking-tight">
-            Workflows built around the way your team works.
-          </h1>
-          <p className="mt-6 max-w-lg text-lg leading-8 text-slate-300">
-            Manage people, projects, approvals, and daily operations from a secure role-based CRM.
-          </p>
-        </div>
-
-        <div className="relative flex items-center gap-3 text-sm text-slate-300">
-          <ShieldCheck className="size-5 text-blue-300" />
-          Secure access for Super Admin, HR, Team Leaders, and Employees
-        </div>
-      </section>
-
-      <section className="flex min-h-screen items-center justify-center bg-background px-5 py-10 sm:px-8">
-        <Card className="w-full max-w-md border-slate-200/80 shadow-2xl shadow-slate-300/30">
-          <CardHeader className="space-y-3 pb-5">
-            <div className="mb-2 flex items-center gap-3 lg:hidden">
-              <img
-                src="/zigmaa-logo.webp"
-                alt="Zigmaa Tech Logo"
-                className="size-10 rounded-xl object-cover shadow-sm border border-slate-200"
-              />
-              <span className="text-xl font-bold text-slate-900">Zigmaa Tech</span>
-            </div>
-
-            <CardTitle className="text-3xl">Sign in</CardTitle>
-            <CardDescription className="text-base">
+      {/* Card Container */}
+      <div className="relative z-10 w-full px-4" style={{ maxWidth: 460 }}>
+        <div className="bg-white/96 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8 md:p-10">
+          {/* Logo & Header */}
+          <div className="flex flex-col items-center mb-7">
+            <img
+              src="/zigmaa-logo.webp"
+              alt="Zigmaa Tech"
+              className="w-16 h-16 rounded-xl object-cover mb-3 shadow-md border border-white/10"
+            />
+            <h1 className="text-xl font-bold text-slate-900">Sign in</h1>
+            <p className="text-sm text-slate-500 mt-1 text-center">
               Enter your work credentials to access Zigmaa CRM.
-            </CardDescription>
-          </CardHeader>
+            </p>
+          </div>
 
-          <CardContent className="space-y-6">
+          <form onSubmit={handlePasswordLogin} className="space-y-4">
             {error && (
-              <Alert className="border-red-200 bg-red-50 text-red-800">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+                {error}
+              </div>
             )}
 
-            <form className="space-y-5" onSubmit={handlePasswordLogin}>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="name@zigmaatech.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <PasswordField
-                  id="password"
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  disabled={isSubmitting}
-                  minLength={8}
-                  required
-                />
-                <div className="flex justify-end">
-                  <button
-                    className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    type="button"
-                    onClick={() => {
-                      setScreen("forgot");
-                      setError(null);
-                    }}
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-              </div>
-
-              <Button className="h-11 w-full" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <LockKeyhole className="size-4" />}
-                {isSubmitting ? "Signing in..." : "Sign in"}
-              </Button>
-            </form>
-
-            <div className="flex items-center gap-3">
-              <Separator className="flex-1" />
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">or</span>
-              <Separator className="flex-1" />
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Email address
+              </label>
+              <input
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@zigmaatech.com"
+                disabled={isSubmitting}
+                className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ED0016] focus:border-transparent transition-all"
+              />
             </div>
 
-            <div className="flex min-h-11 justify-center overflow-hidden">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Password
+              </label>
+              <PasswordField
+                id="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
+                minLength={8}
+                required
+              />
+              <div className="flex justify-end mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScreen("forgot");
+                    setError(null);
+                  }}
+                  className="text-xs text-[#ED0016] hover:underline font-medium"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-12 bg-[#ED0016] hover:bg-[#B80012] disabled:opacity-70 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm shadow-md"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Signing in...
+                </>
+              ) : (
+                <>
+                  <LockKeyhole size={16} /> Sign in
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center gap-3 my-1">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="text-xs text-slate-400">OR</span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+
+            <div className="flex min-h-12 justify-center overflow-hidden">
               {googleEnabled ? (
                 <GoogleLogin
                   onSuccess={handleGoogleLogin}
@@ -301,18 +298,28 @@ export function LoginPage({ googleEnabled }: LoginPageProps) {
                   width="360"
                 />
               ) : (
-                <Button className="w-full" type="button" variant="outline" disabled>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full h-12 border border-slate-200 bg-white text-slate-400 font-medium rounded-xl flex items-center justify-center gap-2.5 text-sm cursor-not-allowed"
+                >
                   Google Sign-In needs a client ID
-                </Button>
+                </button>
               )}
             </div>
+          </form>
 
-            <p className="text-center text-xs leading-5 text-muted-foreground">
-              By signing in, you agree to follow Zigmaa Tech&apos;s security and acceptable-use policies.
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-    </main>
+          <p className="text-xs text-slate-400 text-center mt-5 leading-relaxed">
+            By signing in, you agree to follow Zigmaa Tech&apos;s<br />
+            security and acceptable-use policies.
+          </p>
+
+          <p className="text-xs text-center text-slate-400 mt-3">
+            Demo: <span className="font-mono text-slate-600">admin@zigmaatech.com</span> / <span className="font-mono text-slate-600">AdminPassword123!</span>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
+

@@ -1,8 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './components/ui/Toast';
 import Layout from './components/layout/Layout';
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "517247763825-mkda7rnslk7ftedst48cc7sdkuj1dial.apps.googleusercontent.com";
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
@@ -37,40 +40,42 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <Routes>
-            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="employees" element={<Employees />} />
-              <Route path="departments" element={<Departments />} />
-              <Route path="departments/:id" element={<DepartmentDetail />} />
-              <Route path="clients" element={<Clients />} />
-              <Route path="employees/:id" element={<EmployeeDetail />} />
-              <Route path="projects" element={<Projects />} />
-              <Route path="projects/:id" element={<ProjectDetail />} />
-              <Route path="tasks" element={<Tasks />} />
-              <Route path="attendance" element={<Attendance />} />
-              <Route path="leave-requests" element={<LeaveRequests />} />
-              <Route path="finance" element={<Finance />} />
-              <Route path="revenue" element={<Finance />} />
-              <Route path="documents" element={<Documents />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="notifications" element={<Notifications />} />
-              <Route path="users" element={<UserManagement />} />
-              <Route path="users/:id" element={<UserDetail />} />
-              <Route path="roles" element={<RolesPermissions />} />
-              <Route path="audit-log" element={<AuditLog />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </ToastProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <BrowserRouter>
+        <AuthProvider>
+          <ToastProvider>
+            <Routes>
+              <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="employees" element={<Employees />} />
+                <Route path="departments" element={<Departments />} />
+                <Route path="departments/:id" element={<DepartmentDetail />} />
+                <Route path="clients" element={<Clients />} />
+                <Route path="employees/:id" element={<EmployeeDetail />} />
+                <Route path="projects" element={<Projects />} />
+                <Route path="projects/:id" element={<ProjectDetail />} />
+                <Route path="tasks" element={<Tasks />} />
+                <Route path="attendance" element={<Attendance />} />
+                <Route path="leave-requests" element={<LeaveRequests />} />
+                <Route path="finance" element={<Finance />} />
+                <Route path="revenue" element={<Finance />} />
+                <Route path="documents" element={<Documents />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="users/:id" element={<UserDetail />} />
+                <Route path="roles" element={<RolesPermissions />} />
+                <Route path="audit-log" element={<AuditLog />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </ToastProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   );
 }
 

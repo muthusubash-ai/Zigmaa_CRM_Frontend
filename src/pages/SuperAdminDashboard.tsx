@@ -1,35 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
   ArrowUpRight,
   Calendar,
-  CalendarCheck2,
   CheckCircle2,
-  ChevronRight,
-  ClipboardCheck,
   Clock,
-  Clock3,
   Code2,
-  FileText,
   Film,
   FolderKanban,
   IndianRupee,
-  LayoutDashboard,
   Loader2,
-  LogOut,
-  Settings,
   TrendingUp,
-  Users,
-
-
-  WalletCards,
-  X,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Header } from "@/components/header";
 import { getSuperAdminDashboard, type SuperAdminDashboardData } from "@/lib/dashboard";
 
 import type { AuthUser } from "@/lib/auth";
@@ -37,21 +24,9 @@ import { cn } from "@/lib/utils";
 
 interface SuperAdminDashboardProps {
   user: AuthUser;
-  isSigningOut: boolean;
-  onLogout: () => Promise<void>;
+  isSigningOut?: boolean;
+  onLogout?: () => Promise<void>;
 }
-
-const navigation = [
-  { label: "Dashboard", icon: LayoutDashboard, active: true },
-  { label: "Employees", icon: Users },
-  { label: "Projects", icon: FolderKanban },
-  { label: "Tasks", icon: ClipboardCheck },
-  { label: "Attendance", icon: CalendarCheck2 },
-  { label: "Leave requests", icon: Clock3 },
-  { label: "Finance", icon: WalletCards },
-  { label: "Documents", icon: FileText },
-  { label: "Settings", icon: Settings },
-];
 
 const mockDepartments = [
   {
@@ -101,11 +76,11 @@ const mockActiveProjects = [
   { id: 3, name: "Mobile App API Integration", progress: 90, deadline: "30 Sep 2026" },
 ];
 
-export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdminDashboardProps) {
+export function SuperAdminDashboard({ user }: SuperAdminDashboardProps) {
+  const navigate = useNavigate();
   const [data, setData] = useState<SuperAdminDashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -155,96 +130,8 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
     ? (Number(data.metrics.today_revenue) / 100000).toFixed(1)
     : "1.5";
 
-  const sidebar = (
-    <>
-      <div className="flex h-20 items-center gap-3 border-b border-slate-800 px-5">
-        <img src="/zigmaa-logo.webp" alt="Zigmaa Tech" className="size-10 rounded-xl object-cover border border-white/10" />
-        <div>
-          <p className="font-semibold text-white">Zigmaa Tech</p>
-          <p className="text-xs text-slate-400">Admin workspace</p>
-        </div>
-      </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
-        {navigation.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.label}
-              type="button"
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition",
-                item.active
-                  ? "bg-[#ED0016] text-white shadow-lg shadow-red-950/40"
-                  : "text-slate-300 hover:bg-slate-800 hover:text-white",
-              )}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <Icon className="size-4" />
-              {item.label}
-              {item.active && <ChevronRight className="ml-auto size-4" />}
-            </button>
-          );
-        })}
-      </nav>
-      <div className="border-t border-slate-800 p-3">
-        <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-800/70 p-3">
-          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-red-600 font-semibold text-white">
-            {user.full_name.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">{user.full_name}</p>
-            <p className="truncate text-xs text-slate-400">{user.role}</p>
-          </div>
-        </div>
-        <Button
-          className="w-full border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
-          variant="outline"
-          onClick={onLogout}
-          disabled={isSigningOut}
-        >
-          {isSigningOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
-          Sign out
-        </Button>
-      </div>
-    </>
-  );
-
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-slate-950 lg:flex">{sidebar}</aside>
-
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-            aria-label="Close navigation"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <aside className="relative flex h-full w-72 flex-col bg-slate-950 shadow-2xl">
-            <Button
-              className="absolute right-3 top-5 z-10 text-slate-300"
-              variant="ghost"
-              size="icon"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <X className="size-5" />
-            </Button>
-            {sidebar}
-          </aside>
-        </div>
-      )}
-
-      <div className="lg:pl-64">
-        {/* Top Header */}
-        <Header
-          title="Super Admin Dashboard"
-          subtitle={displayDate}
-          onMenuClick={() => setMobileMenuOpen(true)}
-        />
-
-
-        {/* Main Dashboard Content */}
-        <main className="space-y-6 p-5 sm:p-8">
+    <div className="space-y-6">
           {error && (
             <Alert className="border-red-200 bg-red-50 text-red-800">
               <AlertDescription>{error}</AlertDescription>
@@ -277,7 +164,10 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
               {/* ── 4 Primary Summary Cards ─── */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
                 {/* Attendance */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group">
+                <div
+                  onClick={() => navigate('/attendance')}
+                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
                       <Clock size={20} className="text-[#ED0016]" />
@@ -308,7 +198,10 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
                 </div>
 
                 {/* Tasks */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group">
+                <div
+                  onClick={() => navigate('/tasks')}
+                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
                       <CheckCircle2 size={20} className="text-purple-600" />
@@ -345,7 +238,10 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
                 </div>
 
                 {/* Active Projects */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group">
+                <div
+                  onClick={() => navigate('/projects')}
+                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
                       <FolderKanban size={20} className="text-emerald-600" />
@@ -379,7 +275,10 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
                 </div>
 
                 {/* Revenue */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group">
+                <div
+                  onClick={() => navigate('/finance')}
+                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
                       <IndianRupee size={20} className="text-amber-600" />
@@ -413,7 +312,10 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
                     <h2 className="text-base font-semibold text-slate-900">Department Overview</h2>
                     <p className="text-xs text-slate-500">Performance summary across all departments</p>
                   </div>
-                  <button className="flex items-center gap-1.5 text-sm text-[#ED0016] hover:underline font-semibold">
+                  <button
+                    onClick={() => navigate('/departments')}
+                    className="flex items-center gap-1.5 text-sm text-[#ED0016] hover:underline font-semibold"
+                  >
                     View all <ArrowRight size={14} />
                   </button>
                 </div>
@@ -460,7 +362,10 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
                             <div className="h-2 bg-red-500 rounded-full transition-all duration-500" style={{ width: `${dept.progress}%` }} />
                           </div>
                         </div>
-                        <button className="w-full text-xs text-[#ED0016] border border-red-200 rounded-lg py-2 hover:bg-red-50 transition-colors font-semibold">
+                        <button
+                          onClick={() => navigate(`/departments/${dept.id}`)}
+                          className="w-full text-xs text-[#ED0016] border border-red-200 rounded-lg py-2 hover:bg-red-50 transition-colors font-semibold"
+                        >
                           View Department →
                         </button>
                       </div>
@@ -517,12 +422,13 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
                       <h3 className="font-semibold text-slate-900 text-sm">Active Projects</h3>
                       <p className="text-xs text-slate-400 mt-0.5">{activeProjectsCount} in progress</p>
                     </div>
-                    <button className="text-xs text-[#ED0016] hover:underline font-semibold">View all</button>
+                    <button onClick={() => navigate('/projects')} className="text-xs text-[#ED0016] hover:underline font-semibold">View all</button>
                   </div>
                   <div className="p-4 space-y-3">
                     {mockActiveProjects.map((p) => (
                       <div
                         key={p.id}
+                        onClick={() => navigate('/projects')}
                         className="p-3 bg-slate-50/80 border border-slate-100 rounded-xl hover:bg-slate-100/80 cursor-pointer transition-colors"
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -549,15 +455,13 @@ export function SuperAdminDashboard({ user, isSigningOut, onLogout }: SuperAdmin
                     <p className="text-sm font-bold text-red-900">{overdueTasks} overdue tasks require immediate attention</p>
                     <p className="text-xs text-red-700 mt-0.5">Review, reassign, or update task deadlines across project teams.</p>
                   </div>
-                  <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-xs">
+                  <Button onClick={() => navigate('/tasks')} size="sm" className="bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-xs">
                     Review Tasks
                   </Button>
                 </div>
               )}
             </>
           )}
-        </main>
-      </div>
     </div>
   );
 }

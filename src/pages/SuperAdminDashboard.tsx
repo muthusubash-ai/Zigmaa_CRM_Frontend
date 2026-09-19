@@ -1,26 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import type { ElementType, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle,
-  ArrowRight,
-  ArrowUpRight,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Code2,
-  Film,
-  FolderKanban,
-  IndianRupee,
-  Loader2,
-  TrendingUp,
-} from "lucide-react";
-
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { getSuperAdminDashboard, type SuperAdminDashboardData } from "@/lib/dashboard";
-
-import type { AuthUser } from "@/lib/auth";
-import { cn } from "@/lib/utils";
+  Users, Clock, FolderKanban, IndianRupee, CheckCircle2, AlertTriangle,
+  TrendingUp, Film, Code2, ArrowUpRight, Calendar, ArrowRight, FileText,
+  UserPlus, Briefcase,
+} from 'lucide-react';
+import { employees, projects, tasks, attendanceRecords, transactions, departments, auditLogs } from '@/data/mockData';
+import { statusBadge } from '@/components/ui/badge';
+import type { AuthUser } from '@/lib/auth';
 
 interface SuperAdminDashboardProps {
   user: AuthUser;
@@ -28,440 +15,190 @@ interface SuperAdminDashboardProps {
   onLogout?: () => Promise<void>;
 }
 
-const mockDepartments = [
-  {
-    id: "film-production",
-    name: "Film & Media Production",
-    head: "Subash K",
-    progress: 85,
-    employees: 12,
-    tasks: 24,
-    completedTasks: 20,
-    pendingTasks: 4,
-    overdueTasks: 0,
-    projects: 3,
-    icon: Film,
-  },
-  {
-    id: "software-dev",
-    name: "Software & IT Development",
-    head: "Muthu Subash",
-    progress: 72,
-    employees: 18,
-    tasks: 36,
-    completedTasks: 26,
-    pendingTasks: 8,
-    overdueTasks: 2,
-    projects: 5,
-    icon: Code2,
-  },
-  {
-    id: "sales-marketing",
-    name: "Sales & Marketing",
-    head: "Pavishna M",
-    progress: 90,
-    employees: 8,
-    tasks: 15,
-    completedTasks: 13,
-    pendingTasks: 2,
-    overdueTasks: 0,
-    projects: 2,
-    icon: TrendingUp,
-  },
-];
+const deptIconMap: Record<string, ElementType> = { Film, TrendingUp, Code2, Users };
+const activityColors: Record<string, string> = {
+  Employee: 'bg-blue-50 text-blue-600',
+  Project: 'bg-purple-50 text-purple-600',
+  Task: 'bg-amber-50 text-amber-600',
+  Leave: 'bg-green-50 text-green-600',
+  Settings: 'bg-slate-100 text-slate-600',
+};
+const panel = 'rounded-xl border border-[#E5E7EB] bg-white shadow-sm';
 
-const mockActiveProjects = [
-  { id: 1, name: "Zigmaa CRM v2.0 Platform", progress: 75, deadline: "25 Sep 2026" },
-  { id: 2, name: "Client Portal & Quotation Builder", progress: 40, deadline: "10 Oct 2026" },
-  { id: 3, name: "Mobile App API Integration", progress: 90, deadline: "30 Sep 2026" },
-];
+function Progress({ value, color = 'bg-[#ED0016]' }: { value: number; color?: string }) {
+  return <div className="h-1.5 overflow-hidden rounded-full bg-[#F3F4F6]"><div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} /></div>;
+}
+
+function SummaryCard({ title, icon: Icon, tone, value, to, children }: {
+  title: string; icon: ElementType; tone: string; value: ReactNode; to: string; children: ReactNode;
+}) {
+  const navigate = useNavigate();
+  return (
+    <section className={`${panel} relative p-5 transition-shadow hover:shadow-md`}>
+      <div className="mb-4 flex items-start justify-between">
+        <div className={`flex size-10 items-center justify-center rounded-xl ${tone}`}><Icon size={20} /></div>
+        <button type="button" onClick={() => navigate(to)} aria-label={`View ${title}`} className="text-xs font-medium text-[#ED0016] after:absolute after:inset-0 after:rounded-xl hover:underline focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-red-500">
+          <span className="flex items-center gap-1">View <ArrowUpRight size={12} /></span>
+        </button>
+      </div>
+      <p className="mb-1 text-xs text-[#667085]">{title}</p>
+      <p className="text-2xl font-bold text-[#111111]">{value}</p>
+      {children}
+    </section>
+  );
+}
 
 export function SuperAdminDashboard({ user }: SuperAdminDashboardProps) {
   const navigate = useNavigate();
-  const [data, setData] = useState<SuperAdminDashboardData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    getSuperAdminDashboard()
-      .then((dashboard) => {
-        if (active) setData(dashboard);
-      })
-      .catch((requestError: unknown) => {
-        if (active) {
-          setError(requestError instanceof Error ? requestError.message : "Dashboard data could not be loaded.");
-        }
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const displayDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-IN", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }).format(data ? new Date(`${data.date}T00:00:00`) : new Date()),
-    [data],
-  );
-
-  // Computed metric metrics from live API or fallbacks
-  const totalEmp = data?.metrics.total_employees ?? 38;
-  const presentToday = Math.round(totalEmp * 0.92);
-  const absentToday = totalEmp - presentToday;
-  const attendancePct = Math.round((presentToday / totalEmp) * 100);
-
-  const totalTasks = (data?.metrics.completed_tasks ?? 59) + (data?.metrics.today_tasks ?? 16);
-  const completedTasks = data?.metrics.completed_tasks ?? 59;
-  const pendingTasks = data?.metrics.today_tasks ?? 14;
-  const overdueTasks = data?.metrics.overdue_tasks ?? 2;
-
-  const activeProjectsCount = data?.metrics.active_projects ?? 8;
-  const completedProjectsCount = 14;
-
-  const revenueLakhs = data?.metrics.today_revenue
-    ? (Number(data.metrics.today_revenue) / 100000).toFixed(1)
-    : "1.5";
+  const now = new Date();
+  const displayDate = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+  // Frontend design preview uses the same sample data as the module pages.
+  const presentToday = attendanceRecords.filter(a => a.status === 'Present' || a.status === 'Half Day').length;
+  const onLeaveToday = attendanceRecords.filter(a => a.status === 'Leave').length;
+  const totalEmp = employees.length;
+  const attendancePct = totalEmp ? Math.round(presentToday / totalEmp * 100) : 0;
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.status === 'Completed').length;
+  const pendingTasks = tasks.filter(t => t.status === 'To Do' || t.status === 'In Progress').length;
+  const completionPct = totalTasks ? Math.round(completedTasks / totalTasks * 100) : 0;
+  const overdueTasks = 2;
+  const activeProjects = projects.filter(p => p.status === 'In Progress');
+  const completedProjectsCount = projects.filter(p => p.status === 'Completed').length;
+  const totalRevenue = transactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
+  const todayRevenue = 150000;
 
   return (
-    <div className="space-y-6">
-          {error && (
-            <Alert className="border-red-200 bg-red-50 text-red-800">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <div className="min-w-0 space-y-6">
+      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="mb-1 text-xs font-medium text-[#9CA3AF]">{displayDate}</p>
+            <h2 className="text-xl font-bold text-[#111111]">Good to see you, {user.full_name || 'Super Admin'}.</h2>
+            <p className="mt-1 text-sm text-[#667085]">Monitor your organization, teams, projects and revenue from one place.</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-green-100 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700">
+            <span className="size-2 rounded-full bg-green-500" /> All systems operational
+          </div>
+        </div>
+      </div>
 
-          {isLoading ? (
-            <div className="grid min-h-64 place-items-center rounded-2xl border bg-white">
-              <div className="flex items-center gap-3 text-sm text-slate-500">
-                <Loader2 className="size-5 animate-spin text-red-600" /> Loading dashboard...
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Welcome banner */}
-              <div className="bg-gradient-to-r from-[#08090B] to-[#1a0003] rounded-2xl p-6 text-white shadow-xl shadow-slate-950/20">
-                <div className="flex items-start justify-between flex-wrap gap-3">
-                  <div>
-                    <p className="text-red-300 text-sm font-medium mb-1">{displayDate}</p>
-                    <h2 className="text-2xl font-bold">Good to see you, {user.full_name.split(" ")[0]}.</h2>
-                    <p className="text-slate-300 text-sm mt-1">Here is what is happening across Zigmaa Tech today.</p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard title="Attendance" icon={Clock} tone="bg-[#FFF1F2] text-[#ED0016]" value={`${presentToday}/${totalEmp}`} to="/attendance">
+          <div className="mt-3 flex flex-wrap gap-4 text-xs">
+            <span className="text-green-600">Present: {presentToday}</span><span className="text-amber-500">On Leave: {onLeaveToday}</span>
+          </div>
+          <div className="mt-3"><div className="mb-1 flex justify-between text-xs text-[#9CA3AF]"><span>Attendance rate</span><span className="font-medium text-[#374151]">{attendancePct}%</span></div><Progress value={attendancePct} /></div>
+        </SummaryCard>
+        <SummaryCard title="Tasks" icon={CheckCircle2} tone="bg-purple-50 text-purple-600" value={<>{totalTasks} <span className="text-sm font-normal text-[#9CA3AF]">total</span></>} to="/tasks">
+          <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
+            {[{ label: 'Done', value: completedTasks, style: 'bg-green-50 text-green-700' }, { label: 'Pending', value: pendingTasks, style: 'bg-amber-50 text-amber-700' }, { label: 'Overdue', value: overdueTasks, style: 'bg-red-50 text-red-700' }].map(s => (
+              <div key={s.label} className={`rounded-lg py-1.5 text-center ${s.style}`}><p className="font-bold">{s.value}</p><p>{s.label}</p></div>
+            ))}
+          </div>
+          <div className="mt-3"><Progress value={completionPct} color="bg-purple-500" /><p className="mt-1 text-xs text-[#9CA3AF]">{completionPct}% complete</p></div>
+        </SummaryCard>
+        <SummaryCard title="Active Projects" icon={FolderKanban} tone="bg-emerald-50 text-emerald-600" value={activeProjects.length} to="/projects">
+          <div className="mt-3 space-y-1.5 text-xs">
+            {[{ label: 'Completed', value: completedProjectsCount, dot: 'bg-green-400' }, { label: 'In Progress', value: activeProjects.length, dot: 'bg-[#ED0016]' }, { label: 'Planning', value: projects.filter(p => p.status === 'Planning').length, dot: 'bg-amber-400' }].map(s => (
+              <div key={s.label} className="flex justify-between"><span className="flex items-center gap-1 text-[#9CA3AF]"><span className={`size-2 rounded-full ${s.dot}`} />{s.label}</span><span className="font-medium text-[#374151]">{s.value}</span></div>
+            ))}
+          </div>
+        </SummaryCard>
+        <SummaryCard title="Total Revenue" icon={IndianRupee} tone="bg-amber-50 text-amber-600" value={`₹${(totalRevenue / 100000).toFixed(1)}L`} to="/revenue">
+          <div className="mt-3 space-y-1.5 text-xs">
+            <div className="flex justify-between"><span className="text-[#9CA3AF]">Today's Revenue</span><span className="font-medium text-emerald-600">₹{(todayRevenue / 1000).toFixed(0)}k</span></div>
+            <div className="flex justify-between"><span className="text-[#9CA3AF]">Pending</span><span className="font-medium text-amber-600">₹3.8L</span></div>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600"><TrendingUp size={12} /><span>+12% from last month</span></div>
+        </SummaryCard>
+      </div>
+
+      <section className={`${panel} p-5`}>
+        <h3 className="mb-4 text-sm font-semibold text-[#111111]">Quick Actions</h3>
+        <div className="flex flex-wrap gap-2">
+          {[{ label: '+ Add Employee', icon: UserPlus, to: '/employees', primary: true }, { label: '+ Add Client', icon: Briefcase, to: '/clients' }, { label: '+ Add Project', icon: FolderKanban, to: '/projects' }, { label: '+ Add Task', icon: CheckCircle2, to: '/tasks' }, { label: '+ Record Revenue', icon: IndianRupee, to: '/revenue' }].map(a => (
+            <button key={a.label} type="button" onClick={() => navigate(a.to)} className={`flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors ${a.primary ? 'bg-[#ED0016] text-white hover:bg-[#B80012]' : 'border border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]'}`}><a.icon size={14} />{a.label}</button>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <section className="min-w-0 space-y-4 lg:col-span-2">
+          <div className="flex items-center justify-between gap-3">
+            <div><h2 className="text-sm font-semibold text-[#111111]">Department Overview</h2><p className="text-xs text-[#667085]">Performance summary across all departments</p></div>
+            <button type="button" onClick={() => navigate('/departments')} className="flex shrink-0 items-center gap-1 text-xs font-medium text-[#ED0016] hover:underline">View all <ArrowRight size={12} /></button>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {departments.slice(0, 4).map(dept => {
+              const Icon = deptIconMap[dept.icon] || Users;
+              return (
+                <div key={dept.id} className={`${panel} p-4 transition-shadow hover:shadow-md`}>
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2.5"><div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FFF1F2]"><Icon size={15} className="text-[#ED0016]" /></div><div><h3 className="text-sm font-semibold text-[#111111]">{dept.name}</h3><p className="text-[10px] text-[#9CA3AF]">Lead: {dept.head}</p></div></div>
+                    <span className="rounded-full bg-[#FFF1F2] px-2 py-0.5 text-xs font-bold text-[#ED0016]">{dept.progress}%</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 px-3.5 py-1.5 rounded-full text-xs font-medium">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Systems operational
+                  <div className="mb-3 grid grid-cols-3 gap-1.5 text-xs">
+                    {[{ label: 'Staff', value: dept.employees }, { label: 'Tasks', value: dept.tasks }, { label: 'Projects', value: dept.projects }].map(s => <div key={s.label} className="rounded-lg bg-[#F9FAFB] py-2 text-center"><p className="font-bold text-[#1F2937]">{s.value}</p><p className="text-[#9CA3AF]">{s.label}</p></div>)}
                   </div>
+                  <div className="mb-3"><Progress value={dept.progress} /><p className="mt-1 text-[10px] text-[#9CA3AF]">{dept.completedTasks}/{dept.tasks} tasks done</p></div>
+                  <button type="button" onClick={() => navigate(`/departments/${dept.id}`)} className="w-full rounded-lg border border-red-100 py-1.5 text-xs font-medium text-[#ED0016] transition-colors hover:bg-[#FFF1F2]">View Department</button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+        <section className={`${panel} flex min-w-0 flex-col`}>
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-4">
+            <div><h3 className="text-sm font-semibold text-[#111111]">Recent Activity</h3><p className="mt-0.5 text-xs text-[#9CA3AF]">Latest audit trail</p></div>
+            <button type="button" onClick={() => navigate('/audit-log')} className="text-xs font-medium text-[#ED0016] hover:underline">View Log</button>
+          </div>
+          <div className="max-h-96 flex-1 divide-y divide-[#F3F4F6] overflow-y-auto">
+            {auditLogs.map(log => (
+              <div key={log.id} className="px-4 py-3 transition-colors hover:bg-[#F9FAFB]">
+                <div className="flex items-start gap-3">
+                  <span className={`mt-0.5 max-w-24 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${activityColors[log.module] || 'bg-slate-100 text-slate-600'}`}>{log.module}</span>
+                  <div className="min-w-0 flex-1"><p className="text-xs font-medium leading-snug text-[#1F2937]">{log.description}</p><div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[#9CA3AF]"><span>{log.user}</span><span>·</span><span>{log.time}</span></div></div>
                 </div>
               </div>
+            ))}
+          </div>
+          <div className="border-t border-[#E5E7EB] px-4 py-3"><button type="button" onClick={() => navigate('/audit-log')} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#E5E7EB] py-2 text-xs font-medium text-[#374151] hover:bg-[#F9FAFB]"><FileText size={12} /> View Audit Log</button></div>
+        </section>
+      </div>
 
-              {/* ── 4 Primary Summary Cards ─── */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-                {/* Attendance */}
-                <div
-                  onClick={() => navigate('/attendance')}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
-                      <Clock size={20} className="text-[#ED0016]" />
-                    </div>
-                    <span className="flex items-center gap-1 text-xs text-[#ED0016] font-medium group-hover:underline">
-                      View <ArrowUpRight size={12} />
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-1">Today's Attendance</p>
-                  <p className="text-2xl font-bold text-slate-900">{presentToday}/{totalEmp}</p>
-                  <div className="mt-3 flex items-center gap-3 text-xs">
-                    <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />Present: {presentToday}
-                    </span>
-                    <span className="flex items-center gap-1 text-red-500 font-medium">
-                      <div className="w-2 h-2 rounded-full bg-red-400" />Absent: {absentToday}
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <div className="flex justify-between text-xs text-slate-500 mb-1">
-                      <span>Attendance rate</span>
-                      <span className="font-semibold text-slate-700">{attendancePct}%</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-1.5 bg-red-500 rounded-full transition-all duration-500" style={{ width: `${attendancePct}%` }} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tasks */}
-                <div
-                  onClick={() => navigate('/tasks')}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-                      <CheckCircle2 size={20} className="text-purple-600" />
-                    </div>
-                    <span className="flex items-center gap-1 text-xs text-purple-600 font-medium group-hover:underline">
-                      View <ArrowUpRight size={12} />
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-1">Tasks Overview</p>
-                  <p className="text-2xl font-bold text-slate-900">{totalTasks} Total</p>
-                  <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
-                    <div className="text-center bg-emerald-50 rounded-lg py-1.5">
-                      <p className="font-bold text-emerald-700">{completedTasks}</p>
-                      <p className="text-emerald-600 text-[11px]">Done</p>
-                    </div>
-                    <div className="text-center bg-amber-50 rounded-lg py-1.5">
-                      <p className="font-bold text-amber-700">{pendingTasks}</p>
-                      <p className="text-amber-600 text-[11px]">Pending</p>
-                    </div>
-                    <div className="text-center bg-red-50 rounded-lg py-1.5">
-                      <p className="font-bold text-red-700">{overdueTasks}</p>
-                      <p className="text-red-600 text-[11px]">Overdue</p>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-1.5 bg-purple-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.round((completedTasks / totalTasks) * 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">{Math.round((completedTasks / totalTasks) * 100)}% complete</p>
-                  </div>
-                </div>
-
-                {/* Active Projects */}
-                <div
-                  onClick={() => navigate('/projects')}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                      <FolderKanban size={20} className="text-emerald-600" />
-                    </div>
-                    <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium group-hover:underline">
-                      View <ArrowUpRight size={12} />
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-1">Active Projects</p>
-                  <p className="text-2xl font-bold text-slate-900">{activeProjectsCount}</p>
-                  <div className="mt-3 flex flex-col gap-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400" />Completed
-                      </span>
-                      <span className="font-semibold text-slate-700">{completedProjectsCount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-400" />In Progress
-                      </span>
-                      <span className="font-semibold text-slate-700">{activeProjectsCount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-red-400" />Delayed
-                      </span>
-                      <span className="font-semibold text-slate-700">1</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Revenue */}
-                <div
-                  onClick={() => navigate('/finance')}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                      <IndianRupee size={20} className="text-amber-600" />
-                    </div>
-                    <span className="flex items-center gap-1 text-xs text-amber-600 font-medium group-hover:underline">
-                      View <ArrowUpRight size={12} />
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-1">Total Revenue</p>
-                  <p className="text-2xl font-bold text-slate-900">₹{revenueLakhs}L</p>
-                  <div className="mt-3 flex flex-col gap-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">This month</span>
-                      <span className="font-semibold text-emerald-600">₹1,50,000</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Pending</span>
-                      <span className="font-semibold text-amber-600">₹85,000</span>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                    <TrendingUp size={12} /><span>+12% from last month</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Department Overview ─── */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-base font-semibold text-slate-900">Department Overview</h2>
-                    <p className="text-xs text-slate-500">Performance summary across all departments</p>
-                  </div>
-                  <button
-                    onClick={() => navigate('/departments')}
-                    className="flex items-center gap-1.5 text-sm text-[#ED0016] hover:underline font-semibold"
-                  >
-                    View all <ArrowRight size={14} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {mockDepartments.map((dept) => {
-                    const Icon = dept.icon;
-                    return (
-                      <div key={dept.id} className="bg-white rounded-xl border border-slate-200/80 p-5 hover:shadow-md transition-all">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center">
-                              <Icon size={17} className="text-[#ED0016]" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-slate-900 text-sm">{dept.name}</h3>
-                              <p className="text-xs text-slate-400">Lead: {dept.head}</p>
-                            </div>
-                          </div>
-                          <span className="text-xs font-bold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-100">
-                            {dept.progress}%
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-xs mb-4">
-                          <div className="bg-slate-50 rounded-lg p-2 text-center border border-slate-100">
-                            <p className="font-bold text-slate-900">{dept.employees}</p>
-                            <p className="text-slate-400 text-[11px]">Staff</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-2 text-center border border-slate-100">
-                            <p className="font-bold text-slate-900">{dept.tasks}</p>
-                            <p className="text-slate-400 text-[11px]">Tasks</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-2 text-center border border-slate-100">
-                            <p className="font-bold text-slate-900">{dept.projects}</p>
-                            <p className="text-slate-400 text-[11px]">Projects</p>
-                          </div>
-                        </div>
-                        <div className="mb-3">
-                          <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-                            <span>Work Progress</span>
-                            <span className="text-emerald-600 font-semibold">{dept.completedTasks}/{dept.tasks} done</span>
-                          </div>
-                          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-2 bg-red-500 rounded-full transition-all duration-500" style={{ width: `${dept.progress}%` }} />
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => navigate(`/departments/${dept.id}`)}
-                          className="w-full text-xs text-[#ED0016] border border-red-200 rounded-lg py-2 hover:bg-red-50 transition-colors font-semibold"
-                        >
-                          View Department →
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ── Team Task Performance + Active Projects ─── */}
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-                {/* Team Task Performance Table */}
-                <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-sm">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 text-sm">Team Task Performance</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">Department-wise breakdown</p>
-                    </div>
-                    <button className="text-xs text-[#ED0016] hover:underline font-semibold flex items-center gap-1">
-                      View All <ArrowRight size={12} />
-                    </button>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wide">
-                          {["Department", "Total", "Completed", "Pending", "Overdue"].map((h) => (
-                            <th key={h} className="px-4 py-2.5 text-left font-semibold">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {mockDepartments.map((dept) => (
-                          <tr key={dept.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-4 py-3 font-semibold text-slate-900">{dept.name}</td>
-                            <td className="px-4 py-3 text-slate-700">{dept.tasks}</td>
-                            <td className="px-4 py-3 text-emerald-600 font-bold">{dept.completedTasks}</td>
-                            <td className="px-4 py-3 text-amber-600 font-bold">{dept.pendingTasks}</td>
-                            <td className="px-4 py-3">
-                              <span className={cn("font-bold", dept.overdueTasks > 0 ? "text-red-600" : "text-slate-400")}>
-                                {dept.overdueTasks}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Active Projects List */}
-                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-sm">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 text-sm">Active Projects</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">{activeProjectsCount} in progress</p>
-                    </div>
-                    <button onClick={() => navigate('/projects')} className="text-xs text-[#ED0016] hover:underline font-semibold">View all</button>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    {mockActiveProjects.map((p) => (
-                      <div
-                        key={p.id}
-                        onClick={() => navigate('/projects')}
-                        className="p-3 bg-slate-50/80 border border-slate-100 rounded-xl hover:bg-slate-100/80 cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <p className="text-xs font-semibold text-slate-900 truncate flex-1">{p.name}</p>
-                          <span className="text-xs text-[#ED0016] font-bold flex-shrink-0">{p.progress}%</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-2">
-                          <Calendar size={11} /><span>Due: {p.deadline}</span>
-                        </div>
-                        <div className="h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
-                          <div className="h-1.5 bg-red-500 rounded-full transition-all duration-500" style={{ width: `${p.progress}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Overdue Warning Banner */}
-              {overdueTasks > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
-                  <AlertTriangle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-red-900">{overdueTasks} overdue tasks require immediate attention</p>
-                    <p className="text-xs text-red-700 mt-0.5">Review, reassign, or update task deadlines across project teams.</p>
-                  </div>
-                  <Button onClick={() => navigate('/tasks')} size="sm" className="bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-xs">
-                    Review Tasks
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
+      <section className={`${panel} min-w-0 overflow-hidden`}>
+        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
+          <div><h3 className="text-sm font-semibold text-[#111111]">Active Projects</h3><p className="mt-0.5 text-xs text-[#9CA3AF]">{activeProjects.length} projects in progress</p></div>
+          <button type="button" onClick={() => navigate('/projects')} className="flex items-center gap-1 text-xs font-medium text-[#ED0016] hover:underline">View All <ArrowRight size={12} /></button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">{['Project', 'Client', 'Department', 'Manager', 'Budget', 'Progress', 'Deadline', 'Status'].map(h => <th scope="col" key={h} className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#667085]">{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-[#F3F4F6]">
+              {activeProjects.map(p => (
+                <tr key={p.id} onClick={() => navigate(`/projects/${p.id}`)} className="cursor-pointer transition-colors hover:bg-[#F9FAFB]">
+                  <td className="px-4 py-3.5"><button type="button" onClick={event => { event.stopPropagation(); navigate(`/projects/${p.id}`); }} className="text-left text-sm font-medium text-[#1F2937] hover:underline">{p.name}</button><p className="text-xs text-[#9CA3AF]">{p.code}</p></td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-sm text-[#667085]">{p.client}</td>
+                  <td className="px-4 py-3.5"><span className="whitespace-nowrap rounded-full bg-[#F3F4F6] px-2 py-0.5 text-xs text-[#374151]">{employees.find(e => e.name === p.manager)?.department ?? 'Unassigned'}</span></td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-sm text-[#667085]">{p.manager}</td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-sm font-medium text-[#1F2937]">₹{(p.budget / 100000).toFixed(1)}L</td>
+                  <td className="px-4 py-3.5"><div className="flex min-w-24 items-center gap-2"><div className="flex-1"><Progress value={p.progress} /></div><span className="text-xs text-[#667085]">{p.progress}%</span></div></td>
+                  <td className="px-4 py-3.5"><div className="flex items-center gap-1 whitespace-nowrap text-xs text-[#667085]"><Calendar size={11} />{p.deadline}</div></td>
+                  <td className="px-4 py-3.5">{statusBadge(p.status)}</td>
+                </tr>
+              ))}
+              {!activeProjects.length && <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-[#667085]">No active projects yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {overdueTasks > 0 && (
+        <div className="flex flex-wrap items-start gap-3 rounded-xl border border-red-100 bg-[#FFF1F2] p-4">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[#ED0016]" />
+          <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[#1F2937]">{overdueTasks} overdue tasks require attention</p><p className="mt-0.5 text-xs text-[#667085]">Review and reassign or update deadlines.</p></div>
+          <button type="button" onClick={() => navigate('/tasks')} className="ml-auto shrink-0 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-[#ED0016] hover:bg-red-50">Review</button>
+        </div>
+      )}
     </div>
   );
 }

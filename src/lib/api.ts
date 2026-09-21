@@ -1,7 +1,7 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
-let accessToken = sessionStorage.getItem("zigmaa_access_token");
+let accessToken: string | null = null;
 
 export class ApiError extends Error {
   constructor(
@@ -16,11 +16,6 @@ export class ApiError extends Error {
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
-  if (token) {
-    sessionStorage.setItem("zigmaa_access_token", token);
-  } else {
-    sessionStorage.removeItem("zigmaa_access_token");
-  }
 }
 
 async function parseResponse(response: Response): Promise<unknown> {

@@ -8,7 +8,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import EmptyState from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/Toast';
 
-const roleOptions = ['All', 'Super Admin', 'Admin', 'Manager', 'Sales Executive', 'Support Executive', 'Viewer', 'Employee'];
+const roleOptions = ['All', 'Super Admin', 'HR', 'Employee'];
 const statusOptions = ['All', 'Active', 'Inactive', 'Pending'];
 const deptOptions = ['All', 'Administration', 'Development', 'Design', 'HR', 'Marketing', 'Finance', 'Sales'];
 

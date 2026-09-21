@@ -1,5 +1,5 @@
 import { SuperAdminDashboard } from './SuperAdminDashboard';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth-context';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -9,7 +9,8 @@ export default function Dashboard() {
     full_name: user?.name || 'Zigmaa Super Admin',
     phone: '',
     profile_image: null,
-    role: 'Super Admin',
+    role: user?.role || 'Employee',
+    permissions: user?.permissions || {},
   };
 
   return (

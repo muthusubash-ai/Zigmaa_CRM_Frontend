@@ -6,8 +6,16 @@ export interface AuthUser {
   full_name: string;
   phone: string;
   profile_image: string | null;
-  role: "Super Admin" | "HR" | "Team Leader" | "Employee" | string;
+  role: "Super Admin" | "HR" | "Employee";
+  permissions: PermissionMatrix;
 }
+
+export type PermissionAction = "view" | "create" | "edit" | "delete" | "approve" | "export" | "manage";
+export type PermissionScope = "none" | "own" | "assigned" | "department" | "all";
+export type PermissionMatrix = Record<
+  string,
+  { actions: PermissionAction[]; scope: PermissionScope }
+>;
 
 interface AuthResponse {
   access: string;
@@ -21,7 +29,7 @@ function acceptAuthResponse(response: AuthResponse) {
 
 export async function loginWithPassword(email: string, password: string) {
   const response = await apiRequest<AuthResponse>(
-    "/auth/login/",
+    "/login/",
     {
       method: "POST",
       body: JSON.stringify({ email, password }),

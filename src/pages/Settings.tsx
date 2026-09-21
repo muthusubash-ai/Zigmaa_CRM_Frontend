@@ -15,14 +15,14 @@ const sections = [
   { id: 'integrations', label: 'Integrations', icon: Link2 },
 ];
 
-const roles = ['Super Admin', 'Admin', 'HR Manager', 'Project Manager', 'Employee'];
+const roles = ['Super Admin', 'HR', 'Employee'];
 const modules = ['Employees', 'Projects', 'Tasks', 'Attendance', 'Leave', 'Finance', 'Documents', 'Reports', 'Settings'];
 const permissions = ['View', 'Create', 'Edit', 'Delete', 'Approve'];
 
 const rolePermissions: Record<string, Record<string, string[]>> = {
   'Super Admin': { Employees: ['View','Create','Edit','Delete','Approve'], Projects: ['View','Create','Edit','Delete','Approve'], Tasks: ['View','Create','Edit','Delete','Approve'], Attendance: ['View','Create','Edit','Delete','Approve'], Leave: ['View','Create','Edit','Delete','Approve'], Finance: ['View','Create','Edit','Delete','Approve'], Documents: ['View','Create','Edit','Delete','Approve'], Reports: ['View','Create','Edit','Delete','Approve'], Settings: ['View','Create','Edit','Delete','Approve'] },
   'Admin': { Employees: ['View','Create','Edit'], Projects: ['View','Create','Edit'], Tasks: ['View','Create','Edit'], Attendance: ['View'], Leave: ['View','Approve'], Finance: ['View'], Documents: ['View'], Reports: ['View'], Settings: [] },
-  'HR Manager': { Employees: ['View','Create','Edit'], Projects: ['View'], Tasks: ['View'], Attendance: ['View','Create','Edit'], Leave: ['View','Approve'], Finance: [], Documents: ['View','Create'], Reports: ['View'], Settings: [] },
+  HR: { Employees: ['View','Create','Edit'], Projects: ['View'], Tasks: ['View','Create','Edit'], Attendance: ['View','Create','Edit'], Leave: ['View','Edit','Approve'], Finance: [], Documents: ['View','Create','Edit'], Reports: ['View'], Settings: ['View'] },
   'Project Manager': { Employees: ['View'], Projects: ['View','Create','Edit'], Tasks: ['View','Create','Edit','Delete'], Attendance: [], Leave: ['View'], Finance: ['View'], Documents: ['View'], Reports: ['View'], Settings: [] },
   'Employee': { Employees: [], Projects: ['View'], Tasks: ['View','Edit'], Attendance: ['View'], Leave: ['View','Create'], Finance: [], Documents: ['View'], Reports: [], Settings: [] },
 };
@@ -59,9 +59,8 @@ export default function Settings() {
                 <p className="text-sm font-medium text-slate-900">{role}</p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {role === 'Super Admin' ? 'Full system access' :
-                   role === 'Admin' ? 'Organization management' :
-                   role === 'HR Manager' ? 'Employees, Attendance & Leave' :
-                   role === 'Project Manager' ? 'Projects & Tasks' : 'Personal tasks & leave'}
+                   role === 'HR' ? 'Employees, Attendance & Leave' :
+                   'Personal and assigned work'}
                 </p>
               </div>
               <button className="text-xs text-[#ED0016] hover:underline">Configure</button>

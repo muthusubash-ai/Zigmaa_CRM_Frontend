@@ -185,8 +185,8 @@ export interface CrmUser {
 export const employees: Employee[] = [
   { id: 'EMP001', name: 'Arun Kumar', email: 'arun@zigmaatech.com', phone: '+91 98765 43210', department: 'Development', designation: 'Senior Web Developer', joining: '2023-01-15', salary: 85000, status: 'Active', role: 'employee' },
   { id: 'EMP002', name: 'Priya Sharma', email: 'priya@zigmaatech.com', phone: '+91 98765 43211', department: 'Design', designation: 'UI/UX Designer', joining: '2023-03-10', salary: 70000, status: 'Active', role: 'employee' },
-  { id: 'EMP003', name: 'Karthik Raja', email: 'karthik@zigmaatech.com', phone: '+91 98765 43212', department: 'Digital Marketing', designation: 'Marketing Lead', joining: '2022-11-01', salary: 75000, status: 'Active', role: 'project_manager' },
-  { id: 'EMP004', name: 'Meena Ramesh', email: 'meena@zigmaatech.com', phone: '+91 98765 43213', department: 'HR', designation: 'HR Manager', joining: '2022-05-15', salary: 80000, status: 'Active', role: 'hr_manager' },
+  { id: 'EMP003', name: 'Karthik Raja', email: 'karthik@zigmaatech.com', phone: '+91 98765 43212', department: 'Digital Marketing', designation: 'Marketing Lead', joining: '2022-11-01', salary: 75000, status: 'Active', role: 'Employee' },
+  { id: 'EMP004', name: 'Meena Ramesh', email: 'meena@zigmaatech.com', phone: '+91 98765 43213', department: 'HR', designation: 'HR Manager', joining: '2022-05-15', salary: 80000, status: 'Active', role: 'HR' },
   { id: 'EMP005', name: 'Sanjay Dutt', email: 'sanjay@zigmaatech.com', phone: '+91 98765 43214', department: 'Video Editing', designation: 'Senior Video Editor', joining: '2023-06-20', salary: 65000, status: 'Active', role: 'employee' },
   { id: 'EMP006', name: 'Deepa M', email: 'deepa@zigmaatech.com', phone: '+91 98765 43215', department: 'Development', designation: 'Backend Engineer', joining: '2023-08-01', salary: 72000, status: 'On Leave', role: 'employee' },
 ];
@@ -286,7 +286,7 @@ export const crmRoles: CrmRole[] = [
   },
   {
     id: 'ROL002',
-    name: 'Admin',
+    name: 'Employee',
     users: 2,
     description: 'Administrative access to manage users, projects, and organization data.',
     status: 'Active',
@@ -346,7 +346,7 @@ export const crmUsers: CrmUser[] = [
     phone: '+91 98765 43210',
     department: 'Development',
     jobTitle: 'Senior Web Developer',
-    role: 'Admin',
+    role: 'Employee',
     status: 'Active',
     manager: 'Zigmaa Super Admin',
     lastLogin: 'Yesterday, 06:15 PM',

@@ -1,7 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/auth-context';
 import { ToastProvider } from './components/ui/Toast';
 import Layout from './components/layout/Layout';
 
@@ -33,9 +34,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
-function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
-  return !isAuthenticated ? <>{children}</> : <Navigate to="/dashboard" replace />;
+function PermissionRoute({ module, children }: { module: string; children: React.ReactNode }) {
+  const { can } = useAuth();
+  return can(module) ? <>{children}</> : <Navigate to="/dashboard" replace />;
 }
 
 export function App() {
@@ -45,30 +46,30 @@ export function App() {
         <AuthProvider>
           <ToastProvider>
             <Routes>
-              <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path="/login" element={<Login />} />
               <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route index element={<Navigate to="/login" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
-                <Route path="employees" element={<Employees />} />
-                <Route path="departments" element={<Departments />} />
-                <Route path="departments/:id" element={<DepartmentDetail />} />
-                <Route path="clients" element={<Clients />} />
-                <Route path="employees/:id" element={<EmployeeDetail />} />
-                <Route path="projects" element={<Projects />} />
-                <Route path="projects/:id" element={<ProjectDetail />} />
-                <Route path="tasks" element={<Tasks />} />
-                <Route path="attendance" element={<Attendance />} />
-                <Route path="leave-requests" element={<LeaveRequests />} />
-                <Route path="finance" element={<Finance />} />
-                <Route path="revenue" element={<Finance />} />
-                <Route path="documents" element={<Documents />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="employees" element={<PermissionRoute module="employees"><Employees /></PermissionRoute>} />
+                <Route path="departments" element={<PermissionRoute module="departments"><Departments /></PermissionRoute>} />
+                <Route path="departments/:id" element={<PermissionRoute module="departments"><DepartmentDetail /></PermissionRoute>} />
+                <Route path="clients" element={<PermissionRoute module="clients"><Clients /></PermissionRoute>} />
+                <Route path="employees/:id" element={<PermissionRoute module="employees"><EmployeeDetail /></PermissionRoute>} />
+                <Route path="projects" element={<PermissionRoute module="projects"><Projects /></PermissionRoute>} />
+                <Route path="projects/:id" element={<PermissionRoute module="projects"><ProjectDetail /></PermissionRoute>} />
+                <Route path="tasks" element={<PermissionRoute module="tasks"><Tasks /></PermissionRoute>} />
+                <Route path="attendance" element={<PermissionRoute module="attendance"><Attendance /></PermissionRoute>} />
+                <Route path="leave-requests" element={<PermissionRoute module="leave"><LeaveRequests /></PermissionRoute>} />
+                <Route path="finance" element={<PermissionRoute module="finance"><Finance /></PermissionRoute>} />
+                <Route path="revenue" element={<PermissionRoute module="finance"><Finance /></PermissionRoute>} />
+                <Route path="documents" element={<PermissionRoute module="documents"><Documents /></PermissionRoute>} />
+                <Route path="settings" element={<PermissionRoute module="settings"><Settings /></PermissionRoute>} />
                 <Route path="profile" element={<Profile />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="users/:id" element={<UserDetail />} />
-                <Route path="roles" element={<RolesPermissions />} />
-                <Route path="audit-log" element={<AuditLog />} />
+                <Route path="notifications" element={<PermissionRoute module="notifications"><Notifications /></PermissionRoute>} />
+                <Route path="users" element={<PermissionRoute module="users"><UserManagement /></PermissionRoute>} />
+                <Route path="users/:id" element={<PermissionRoute module="users"><UserDetail /></PermissionRoute>} />
+                <Route path="roles" element={<PermissionRoute module="roles"><RolesPermissions /></PermissionRoute>} />
+                <Route path="audit-log" element={<PermissionRoute module="audit_log"><AuditLog /></PermissionRoute>} />
               </Route>
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

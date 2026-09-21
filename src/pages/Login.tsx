@@ -1,15 +1,15 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth-context';
 import { LockKeyhole, Loader2 } from 'lucide-react';
 import { PasswordField } from '@/components/password-field';
 
 export default function Login() {
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@zigmaatech.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,9 +143,6 @@ export default function Login() {
             />
           </div>
 
-          <p className="text-xs text-center text-slate-400 mt-6">
-            Demo credentials: <span className="font-mono text-slate-600">admin@zigmaatech.com</span> / <span className="font-mono text-slate-600">password</span>
-          </p>
         </div>
       </div>
     </div>

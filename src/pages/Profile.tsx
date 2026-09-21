@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth-context';
 import { Mail, Phone, Briefcase, Building2, Pencil, KeyRound, Clock, Activity } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';

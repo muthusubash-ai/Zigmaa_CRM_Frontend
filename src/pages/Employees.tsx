@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 
 const deptList = ['All', 'Development', 'Design', 'HR', 'Marketing', 'Finance', 'Video Editing', 'Digital Marketing'];
 const statusList = ['All', 'Active', 'Inactive', 'On Leave'];
-const roleList = ['employee', 'hr_manager', 'project_manager', 'admin'];
+const roleList = ['Employee', 'HR'];
 const typeList = ['Full-time', 'Part-time', 'Contract', 'Intern'];
 
 const initForm = {

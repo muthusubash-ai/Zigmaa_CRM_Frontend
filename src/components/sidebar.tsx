@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { logout as apiLogout } from '@/lib/auth';
+import { useAuth } from '@/context/auth-context';
 import {
   LayoutDashboard, Users, FolderKanban, CheckSquare,
   Clock, CalendarOff, Wallet, FileText, Settings,
@@ -10,40 +10,24 @@ import {
 
 const logo = '/zigmaa-logo.webp';
 
-// Context fallback helper if AuthContext is not present
-const useAuth = () => {
-  const handleLogout = async () => {
-    try {
-      await apiLogout();
-    } catch {
-      localStorage.removeItem('access_token');
-    }
-  };
-
-  return {
-    user: { name: 'Zigmaa Admin', email: 'admin@zigmaatech.com' },
-    logout: handleLogout,
-  };
-};
-
 const navMain = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/employees', icon: Users, label: 'Employees' },
-  { to: '/departments', icon: Building2, label: 'Departments' },
-  { to: '/clients', icon: Briefcase, label: 'Clients' },
-  { to: '/projects', icon: FolderKanban, label: 'Projects' },
-  { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
-  { to: '/attendance', icon: Clock, label: 'Attendance' },
-  { to: '/leave-requests', icon: CalendarOff, label: 'Leave Requests' },
-  { to: '/revenue', icon: Wallet, label: 'Revenue' },
-  { to: '/documents', icon: FileText, label: 'Documents' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', module: 'dashboard' },
+  { to: '/employees', icon: Users, label: 'Employees', module: 'employees' },
+  { to: '/departments', icon: Building2, label: 'Departments', module: 'departments' },
+  { to: '/clients', icon: Briefcase, label: 'Clients', module: 'clients' },
+  { to: '/projects', icon: FolderKanban, label: 'Projects', module: 'projects' },
+  { to: '/tasks', icon: CheckSquare, label: 'Tasks', module: 'tasks' },
+  { to: '/attendance', icon: Clock, label: 'Attendance', module: 'attendance' },
+  { to: '/leave-requests', icon: CalendarOff, label: 'Leave Requests', module: 'leave' },
+  { to: '/revenue', icon: Wallet, label: 'Revenue', module: 'finance' },
+  { to: '/documents', icon: FileText, label: 'Documents', module: 'documents' },
 ];
 
 const navSystem = [
-  { to: '/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/roles', icon: ShieldCheck, label: 'Roles & Permissions' },
-  { to: '/audit-log', icon: ScrollText, label: 'Audit Log' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/notifications', icon: Bell, label: 'Notifications', module: 'notifications' },
+  { to: '/roles', icon: ShieldCheck, label: 'Roles & Permissions', module: 'roles' },
+  { to: '/audit-log', icon: ScrollText, label: 'Audit Log', module: 'audit_log' },
+  { to: '/settings', icon: Settings, label: 'Settings', module: 'settings' },
 ];
 
 interface NavItemProps {
@@ -107,8 +91,10 @@ interface SidebarContentProps {
 }
 
 function SidebarContent({ collapsed, onToggle, onClose, isMobile = false }: SidebarContentProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, can } = useAuth();
   const navigate = useNavigate();
+  const visibleMain = navMain.filter(item => can(item.module));
+  const visibleSystem = navSystem.filter(item => can(item.module));
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-[#E5E7EB]">
@@ -118,7 +104,7 @@ function SidebarContent({ collapsed, onToggle, onClose, isMobile = false }: Side
         {!collapsed && (
           <div className="min-w-0 flex-1 overflow-hidden">
             <div className="text-[#111111] font-bold text-sm leading-tight truncate">Zigmaa Tech</div>
-            <div className="text-[#9CA3AF] text-xs truncate">Admin Workspace</div>
+            <div className="text-[#9CA3AF] text-xs truncate">{user?.role ?? 'Workspace'}</div>
           </div>
         )}
         {!collapsed && !isMobile && (
@@ -149,7 +135,7 @@ function SidebarContent({ collapsed, onToggle, onClose, isMobile = false }: Side
       {/* Nav */}
       <nav className="flex-1 py-3 overflow-y-auto overflow-x-visible">
         <div className="space-y-0.5">
-          {navMain.map(item => (
+          {visibleMain.map(item => (
             <NavItem key={item.to} {...item} collapsed={collapsed} onClose={onClose} />
           ))}
         </div>
@@ -160,7 +146,7 @@ function SidebarContent({ collapsed, onToggle, onClose, isMobile = false }: Side
           <div className="my-3 mx-4 border-t border-[#E5E7EB]" />
         )}
         <div className="space-y-0.5">
-          {navSystem.map(item => (
+          {visibleSystem.map(item => (
             <NavItem key={item.to} {...item} collapsed={collapsed} onClose={onClose} />
           ))}
         </div>
@@ -183,7 +169,7 @@ function SidebarContent({ collapsed, onToggle, onClose, isMobile = false }: Side
                   <div className="w-8 h-8 rounded-full bg-[#ED0016] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">Z</div>
                   <div className="min-w-0">
                     <p className="text-[#111111] text-xs font-semibold truncate">{user?.name}</p>
-                    <p className="text-[#667085] text-[11px] truncate">Super Admin</p>
+                    <p className="text-[#667085] text-[11px] truncate">{user?.role}</p>
                   </div>
                 </NavLink>
                 <div className="border-t border-[#E5E7EB]">
@@ -208,7 +194,7 @@ function SidebarContent({ collapsed, onToggle, onClose, isMobile = false }: Side
               <div className="w-9 h-9 rounded-full bg-[#ED0016] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">Z</div>
               <div className="min-w-0 flex-1">
                 <div className="text-[#111111] text-xs font-semibold truncate">{user?.name}</div>
-                <div className="text-[#667085] text-xs truncate">Super Admin</div>
+                <div className="text-[#667085] text-xs truncate">{user?.role}</div>
               </div>
               <LogOut size={14} className="text-[#9CA3AF] flex-shrink-0 opacity-0 group-hover/profile:opacity-100 transition-opacity" />
             </NavLink>
@@ -218,10 +204,12 @@ function SidebarContent({ collapsed, onToggle, onClose, isMobile = false }: Side
                   <Users size={14} className="text-[#9CA3AF]" />
                   <span>My Profile</span>
                 </NavLink>
-                <NavLink to="/settings" onClick={onClose} className="flex items-center gap-2.5 px-4 py-2.5 text-[#374151] hover:bg-[#F9FAFB] transition-colors text-sm">
-                  <Settings size={14} className="text-[#9CA3AF]" />
-                  <span>Settings</span>
-                </NavLink>
+                {can('settings') && (
+                  <NavLink to="/settings" onClick={onClose} className="flex items-center gap-2.5 px-4 py-2.5 text-[#374151] hover:bg-[#F9FAFB] transition-colors text-sm">
+                    <Settings size={14} className="text-[#9CA3AF]" />
+                    <span>Settings</span>
+                  </NavLink>
+                )}
                 <div className="border-t border-[#E5E7EB]">
                   <button
                     onClick={async () => { await logout(); navigate('/login'); }}

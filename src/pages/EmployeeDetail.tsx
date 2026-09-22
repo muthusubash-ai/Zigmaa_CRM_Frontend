@@ -1,14 +1,30 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, Calendar, DollarSign } from 'lucide-react';
 import { employees, tasks, projects } from '@/data/mockData';
 import { statusBadge } from '@/components/ui/badge';
+import { getEmployee, type EmployeeRecord } from '@/lib/employees';
 
 const tabs = ['Overview', 'Projects', 'Tasks', 'Attendance', 'Leave', 'Documents', 'Finance'];
 
 export default function EmployeeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const emp = employees.find(e => e.id === id);
+  const mockEmp = employees.find(e => e.id === id);
+  const [apiEmp, setApiEmp] = useState<EmployeeRecord | null>(null);
+  const [loading, setLoading] = useState(!mockEmp && Boolean(id && /^\d+$/.test(id)));
+
+  useEffect(() => {
+    if (mockEmp || !id || !/^\d+$/.test(id)) return;
+    getEmployee(Number(id))
+      .then(setApiEmp)
+      .catch(() => setApiEmp(null))
+      .finally(() => setLoading(false));
+  }, [id, mockEmp]);
+
+  const emp = mockEmp || apiEmp;
+
+  if (loading) return <div className="py-20 text-center text-sm text-slate-500">Loading employee...</div>;
 
   if (!emp) return (
     <div className="text-center py-20">
@@ -17,8 +33,8 @@ export default function EmployeeDetail() {
     </div>
   );
 
-  const empTasks = tasks.filter(t => t.assignee === id);
-  const empProjects = projects.filter(p => p.team.includes(id || ''));
+  const empTasks = mockEmp ? tasks.filter(t => t.assignee === id) : [];
+  const empProjects = mockEmp ? projects.filter(p => p.team.includes(id || '')) : [];
 
   return (
     <div className="space-y-5">
@@ -47,7 +63,7 @@ export default function EmployeeDetail() {
             { icon: Mail, label: 'Email', value: emp.email },
             { icon: Phone, label: 'Phone', value: emp.phone },
             { icon: Calendar, label: 'Joining Date', value: emp.joining },
-            { icon: DollarSign, label: 'Salary', value: `₹${emp.salary.toLocaleString()}` },
+            { icon: DollarSign, label: 'Salary', value: `₹${Number(emp.salary || 0).toLocaleString()}` },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label}>
               <p className="text-xs text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Icon size={12} />{label}</p>

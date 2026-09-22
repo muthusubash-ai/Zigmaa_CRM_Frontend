@@ -1,16 +1,21 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Eye, Pencil, Trash2, Users, ChevronDown } from 'lucide-react';
-import { employees as initialEmployees, attendanceRecords, tasks, projects } from '@/data/mockData';
+import { attendanceRecords, tasks, projects } from '@/data/mockData';
 import { statusBadge } from '@/components/ui/badge';
 import Modal from '@/components/ui/Modal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import EmptyState from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/Toast';
+import { PasswordField } from '@/components/password-field';
+import { createEmployee, deleteEmployee, listEmployees, updateEmployee, type EmployeeRecord } from '@/lib/employees';
 
 const deptList = ['All', 'Development', 'Design', 'HR', 'Marketing', 'Finance', 'Video Editing', 'Digital Marketing'];
 const statusList = ['All', 'Active', 'Inactive', 'On Leave'];
-const roleList = ['Employee', 'HR'];
+const roleList = [
+  { value: 'employee', label: 'Employee' },
+  { value: 'hr_manager', label: 'HR' },
+];
 const typeList = ['Full-time', 'Part-time', 'Contract', 'Intern'];
 
 const initForm = {
@@ -71,14 +76,27 @@ const attendanceBadge = (status: string) => {
 export default function Employees() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [employees, setEmployees] = useState(initialEmployees);
+  const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dept, setDept] = useState('All');
   const [status, setStatus] = useState('All');
   const [addOpen, setAddOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(initForm);
   const [modalTab, setModalTab] = useState<'personal' | 'work' | 'account'>('personal');
+
+  useEffect(() => {
+    let mounted = true;
+    listEmployees()
+      .then(response => { if (mounted) setEmployees(response.employees); })
+      .catch(error => {
+        if (mounted) toast(error instanceof Error ? error.message : 'Employees could not be loaded.', 'error');
+      })
+      .finally(() => { if (mounted) setIsLoading(false); });
+    return () => { mounted = false; };
+  }, [toast]);
 
   const filtered = employees.filter(e => {
     const q = search.toLowerCase();
@@ -89,24 +107,65 @@ export default function Employees() {
     );
   });
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name || !form.email) { toast('Name and email are required.', 'error'); return; }
-    const newEmp = {
-      ...form,
-      id: `EMP${String(employees.length + 1).padStart(3, '0')}`,
-      salary: Number(form.salary) || 0,
-      status: 'Active',
-    };
-    setEmployees(prev => [...prev, newEmp]);
-    setForm(initForm);
-    setModalTab('personal');
-    setAddOpen(false);
-    toast('Employee added successfully.');
+    if (!editingId && !form.password) { toast('Temporary password is required.', 'error'); setModalTab('account'); return; }
+    try {
+      const input = {
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        department: form.department,
+        designation: form.designation,
+        joining: form.joining || undefined,
+        salary: form.salary || undefined,
+        role: form.role,
+        password: form.password,
+      };
+      if (editingId) {
+        const updatedEmployee = await updateEmployee(editingId, input);
+        setEmployees(prev => prev.map(employee => employee.employee_id === editingId ? updatedEmployee : employee));
+      } else {
+        const newEmployee = await createEmployee(input);
+        setEmployees(prev => [...prev, newEmployee]);
+      }
+      setForm(initForm);
+      setModalTab('personal');
+      setEditingId(null);
+      setAddOpen(false);
+      toast(editingId ? 'Employee updated and saved to database.' : 'Employee added and saved to database.');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Employee could not be created.', 'error');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setEmployees(prev => prev.filter(e => e.id !== id));
-    toast('Employee removed.', 'warning');
+  const handleEdit = (employee: EmployeeRecord) => {
+    setEditingId(employee.employee_id);
+    setForm({
+      name: employee.name,
+      email: employee.email,
+      phone: employee.phone,
+      department: employee.department,
+      designation: employee.designation,
+      joining: employee.joining,
+      type: 'Full-time',
+      salary: employee.salary == null ? '' : String(employee.salary),
+      role: employee.role.toLowerCase() === 'hr' ? 'hr_manager' : 'employee',
+      password: '',
+    });
+    setModalTab('personal');
+    setAddOpen(true);
+  };
+
+  const handleDelete = async (employeeId: number) => {
+    try {
+      await deleteEmployee(employeeId);
+      setEmployees(prev => prev.map(employee => employee.employee_id === employeeId ? { ...employee, status: 'Inactive' } : employee));
+      setDeleteId(null);
+      toast('Employee deactivated and saved to database.', 'warning');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Employee could not be removed.', 'error');
+    }
   };
 
   // Summary counts
@@ -157,7 +216,9 @@ export default function Employees() {
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            <div className="px-6 py-12 text-center text-sm text-slate-500">Loading employees...</div>
+          ) : filtered.length === 0 ? (
             <EmptyState
               icon={Users}
               title="No employees found"
@@ -212,13 +273,13 @@ export default function Employees() {
                       <td className="px-4 py-3.5">{statusBadge(emp.status)}</td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => navigate(`/employees/${emp.id}`)} className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-[#ED0016] transition-colors" title="View">
+                          <button onClick={() => navigate(`/employees/${emp.employee_id}`)} className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-[#ED0016] transition-colors" title="View">
                             <Eye size={14} />
                           </button>
-                          <button className="p-1.5 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
+                          <button onClick={() => handleEdit(emp)} className="p-1.5 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
                             <Pencil size={14} />
                           </button>
-                          <button onClick={() => setDeleteId(emp.id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Delete">
+                          <button onClick={() => setDeleteId(emp.employee_id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Deactivate">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -238,7 +299,7 @@ export default function Employees() {
       </div>
 
       {/* Add Employee Modal — tabbed */}
-      <Modal open={addOpen} onClose={() => { setAddOpen(false); setModalTab('personal'); }} title="Add New Employee" size="lg">
+      <Modal open={addOpen} onClose={() => { setAddOpen(false); setModalTab('personal'); setEditingId(null); setForm(initForm); }} title={editingId ? 'Edit Employee' : 'Add New Employee'} size="lg">
         {/* Tabs */}
         <div className="flex border-b border-slate-100 mb-5 -mt-1">
           {(['personal', 'work', 'account'] as const).map(t => (
@@ -301,16 +362,16 @@ export default function Employees() {
             <Field label="System Role">
               <div className="relative">
                 <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} className={selectCls}>
-                  {roleList.map(r => <option key={r} value={r}>{r}</option>)}
+                  {roleList.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
                 <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
             </Field>
             <Field label="Password">
-              <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="••••••••" className={inputCls} />
+              <PasswordField value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="Temporary password" className={inputCls} />
             </Field>
             <div className="sm:col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
-              <p className="text-xs text-amber-700 font-medium">Account credentials will be sent to the employee's email once added.</p>
+              <p className="text-xs text-amber-700 font-medium">Temporary password database-la securely hash aagi save aagum. Employee-kku credentials separately share pannunga.</p>
             </div>
           </div>
         )}
@@ -319,11 +380,11 @@ export default function Employees() {
           {modalTab !== 'personal' && (
             <button onClick={() => setModalTab(modalTab === 'account' ? 'work' : 'personal')} className="px-5 h-11 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50">Back</button>
           )}
-          <button onClick={() => setAddOpen(false)} className="flex-1 h-11 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50">Cancel</button>
+          <button onClick={() => { setAddOpen(false); setEditingId(null); setForm(initForm); }} className="flex-1 h-11 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50">Cancel</button>
           {modalTab !== 'account' ? (
             <button onClick={() => setModalTab(modalTab === 'personal' ? 'work' : 'account')} className="flex-1 h-11 bg-[#ED0016] hover:bg-[#B80012] text-white rounded-xl text-sm font-medium transition-colors">Continue</button>
           ) : (
-            <button onClick={handleAdd} className="flex-1 h-11 bg-[#ED0016] hover:bg-[#B80012] text-white rounded-xl text-sm font-medium transition-colors">Add Employee</button>
+            <button onClick={handleAdd} className="flex-1 h-11 bg-[#ED0016] hover:bg-[#B80012] text-white rounded-xl text-sm font-medium transition-colors">{editingId ? 'Update Employee' : 'Add Employee'}</button>
           )}
         </div>
       </Modal>
